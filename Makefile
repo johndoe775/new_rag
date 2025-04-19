@@ -4,3 +4,9 @@ install:
 lint:
 	@pylint $(shell find . -name "*.py" -not -path "./.venv/*")
 
+format:
+	black --exclude .venv .
+
+run:
+	@python3 app.py
+

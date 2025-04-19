@@ -1,6 +1,7 @@
 sentence-transformers
 langchain
-streamlit
+fastapi
+uvicorn
 pypdf
 python-dotenv
 langchain_community
@@ -11,3 +12,4 @@ faiss-cpu
 unstructured
 pytest
 pylint
+black
