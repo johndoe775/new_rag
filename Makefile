@@ -1,12 +1,20 @@
-install:
-	@python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
+env:
+	python3 -m venv .venv 
 
-lint:
-	@pylint $(shell find . -name "*.py" -not -path "./.venv/*")
+activate:
+	run . .venv/bin/activate
+
+install:
+	python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
+
+git:
+	git add .
+	git status
+	git commit -m "recent edits"
+	git push
 
 format:
-	black --exclude .venv .
+	python3 -m black . --include '\.py'
 
 run:
-	@python3 app.py
-
+	streamlit run final_app.py
