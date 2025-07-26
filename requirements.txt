@@ -14,3 +14,4 @@ streamlit
 PyPDF2
 black
 yfinance
+pandasql
