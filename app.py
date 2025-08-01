@@ -7,6 +7,7 @@ from langgraph.prebuilt import ToolNode
 from pydantic import BaseModel, Field
 from typing import Literal
 from langchain_core.prompts import PromptTemplate
+from research.helpers import LLM
 from research.tools import pandas_tool, sql_tool
 
 
