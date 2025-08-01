@@ -15,6 +15,7 @@ groq = os.environ.get("groq")
 
 app = FastAPI()
 
+
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), question: str = Form(...)):
     try:

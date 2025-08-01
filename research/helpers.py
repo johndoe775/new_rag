@@ -6,6 +6,7 @@ from langchain_groq import ChatGroq
 load_dotenv()
 api_key = os.environ["groq"]
 
+
 class LLM:
     def __init__(
         self,
