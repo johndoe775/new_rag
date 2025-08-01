@@ -1,4 +1,3 @@
-import yfinance as yf
 from langchain.tools import tool
 from langchain_core.prompts import PromptTemplate
 import pandas as pd
@@ -7,18 +6,6 @@ from pandasql import sqldf
 pysqldf = lambda q: sqldf(q, globals())
 import io
 from helpers import LLM
-
-
-@tool
-def yf(ticker):
-    """use this tool to get stocks data from yfinace"""
-
-    # Replace 'AAPL' with your desired ticker symbol
-    ticker = yf.Ticker(ticker)
-
-    # Get daily historical market data for the last 30 days
-    daily_data = ticker.history(period="1d")  # Last 30 days
-    return daily_data
 
 
 @tool
