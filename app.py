@@ -11,6 +11,7 @@ from research.helpers import LLM
 from research.tools import pandas_tool, sql_tool
 import argparse
 
+
 # Replace with the actual LLM library you're using
 class GraphState(TypedDict):
     """
@@ -138,22 +139,30 @@ graph.add_edge("sql_tool", END)
 # Compile the graph
 app = graph.compile()
 
+
 # You can now invoke the graph with an initial state
 # initial_state = {"messages": [], "inputs": "analyze this data using pandas"}
 # result = app.invoke(initial_state)
 # print(result)
 def main():
-    parser = argparse.ArgumentParser(description="Process user input for data analysis.")
-    parser.add_argument("input_text", type=str, help="The input text for analysis (e.g., 'analyze this data using pandas').")
-    
+    parser = argparse.ArgumentParser(
+        description="Process user input for data analysis."
+    )
+    parser.add_argument(
+        "input_text",
+        type=str,
+        help="The input text for analysis (e.g., 'analyze this data using pandas').",
+    )
+
     args = parser.parse_args()
-    
+
     # Prepare the initial state
     initial_state = {"messages": [], "inputs": args.input_text}
-    
+
     # Invoke the graph with the initial state
     result = app.invoke(initial_state)
     print(result)
+
 
 if __name__ == "__main__":
     main()

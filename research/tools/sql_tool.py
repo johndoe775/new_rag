@@ -7,7 +7,6 @@ pysqldf = lambda q: sqldf(q, globals())
 import io
 
 
-
 @tool
 def dataframe_query(state):
     """You are given a dataframe info and a query from user regarding dataframe, your job is to write SQL query that suffices the user's objective
@@ -43,6 +42,6 @@ def dataframe_query(state):
     response = chain.invoke({"dataframe_info": s, "query": query}).content
     state["message"].append(["completed SQL Query"])
 
-    state["answer"]= pysqldf(response)
+    state["answer"] = pysqldf(response)
 
     return state

@@ -9,8 +9,9 @@ from dotenv import load_dotenv
 from langchain.tools import tool
 from state import state
 
+
 @tool
-def pandas_tool(state:GraphState):
+def pandas_tool(state: GraphState):
     """
     use this tool when the user asks for visualiztion from the data using pandas
     """
