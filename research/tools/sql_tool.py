@@ -11,11 +11,12 @@ import os
 
 @tool
 def dataframe_query(state: GraphState):
-    """You are given a dataframe info and a query from user regarding dataframe, your job is to write SQL query that suffices the user's objective
+    """You are given a a query from user regarding dataframe, your job is to write SQL query that suffices the user's objective
     note that query so given must run on pandasql
     use pysql to query the dataframe and return a pandas dataframe
+    ### Instructions
+    *** use name from df_info dictionary to create a dataframe using paths["name"] to access the path for creating a dataframe that shall be queried
     ### Inputs :
-        - dataframe: The name of the dataframe to be queried.
         - query: The user's query regarding the dataframe.
     ### Output:
         - SQL query (Assume name of the dataframe to be df)
@@ -62,8 +63,8 @@ def dataframe_query(state: GraphState):
 
     # Ensure that the prompt is correctly formatted
     prompt = PromptTemplate(
-        input_variables=[s, state["inputs"]],
-        template=f"""You are given a dataframe whose name is df and dataframe_info  {s} and a {state["inputs"]} from user regarding dataframe, your job is to write SQL query that suffices the user's objective 
+        input_variables=[ state["inputs"]],
+        template=f"""You are given  a {state["inputs"]} from user regarding dataframe, your job is to write SQL query that suffices the user's objective 
         note that only query must be returned and nothing else
         """,
     )
@@ -71,7 +72,7 @@ def dataframe_query(state: GraphState):
 
     # Ensure that chain is defined and can invoke the LLM
     chain = prompt | LLM().llm  # This line needs to be valid in your context
-    response = chain.invoke({"dataframe_info": s, "query": state["inputs"]}).content
+    response = chain.invoke({ "query": state["inputs"]}).content
     # state["message"].append(["completed SQL Query"])
 
     state["answer"] = pysqldf(response)
