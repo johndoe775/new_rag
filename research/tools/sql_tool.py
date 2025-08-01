@@ -2,13 +2,14 @@ from langchain.tools import tool
 from langchain_core.prompts import PromptTemplate
 import pandas as pd
 from pandasql import sqldf
+from state import GraphState
 
 pysqldf = lambda q: sqldf(q, globals())
 import io
 
 
 @tool
-def dataframe_query(state):
+def dataframe_query(state: GraphState):
     """You are given a dataframe info and a query from user regarding dataframe, your job is to write SQL query that suffices the user's objective
     note that query so given must run on pandasql
     use pysql to query the dataframe and return a pandas dataframe
@@ -40,7 +41,7 @@ def dataframe_query(state):
     # Ensure that chain is defined and can invoke the LLM
     chain = prompt | LLM().llm  # This line needs to be valid in your context
     response = chain.invoke({"dataframe_info": s, "query": query}).content
-    state["message"].append(["completed SQL Query"])
+    # state["message"].append(["completed SQL Query"])
 
     state["answer"] = pysqldf(response)
 

@@ -25,3 +25,4 @@ class GraphState(TypedDict):
     messages: Annotated[List, add_messages]
     inputs: str
     choice: str
+    answer: str
