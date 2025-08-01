@@ -5,7 +5,7 @@ from pandasql import sqldf
 
 pysqldf = lambda q: sqldf(q, globals())
 import io
-from helpers import LLM
+
 
 
 @tool

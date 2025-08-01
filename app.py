@@ -65,8 +65,9 @@ def sql_tool(state: GraphState) -> str:
     pass
 
 """
-pandas_tool_node = ToolNode([pandas_tool])
-sql_tool_node = ToolNode([sql_tool])
+
+pandas_tool_node = ToolNode([pandas_tool.pandas_tool])
+sql_tool_node = ToolNode([sql_tool.dataframe_query])
 
 
 def router(state: GraphState) -> str:
