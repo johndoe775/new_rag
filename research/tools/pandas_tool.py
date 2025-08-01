@@ -7,10 +7,10 @@ from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 from langchain.tools import tool
-
+from state import state
 
 @tool
-def pandas_tool():
+def pandas_tool(state:GraphState):
     """
     use this tool when the user asks for visualiztion from the data using pandas
     """
@@ -125,3 +125,4 @@ def pandas_tool():
                 plt.show()
         except Exception as e:
             print(f"Error executing `{line}`: {e}")
+    state["message"].append(["completed pandas visualization"])
