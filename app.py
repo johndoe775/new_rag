@@ -55,20 +55,16 @@ def inputs_node(state: GraphState) -> str:
 
 """
 @tool
-def pandas_tool(state: GraphState) -> str:
-    "use this tool for pandas visualization"
-    pass
+
 
 
 @tool
-def sql_tool(state: GraphState) -> str:
-    "use this tool for sql query"
-    pass
+
 
 """
 
 pandas_tool_node = ToolNode([pandas_tool.pandas_tool])
-sql_tool_node = ToolNode([sql_tool.dataframe_query])
+sql_tool_node = ToolNode([sql_tool.pandasql_tool])
 
 
 def router(state: GraphState) -> str:
