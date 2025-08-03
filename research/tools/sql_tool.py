@@ -110,5 +110,5 @@ and wants to answer a specific question using SQL. Use pandasql / SQLite dialect
         print(f"Error executing query: {e}")
 
     # 6) Update state if needed
-    # state["message"].append(["completed pandasql analysis"])
+    state["messages"].append("completed pandasql analysis")
     return state
