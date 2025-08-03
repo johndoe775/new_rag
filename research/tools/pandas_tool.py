@@ -7,6 +7,7 @@ from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 from langchain.tools import tool
+from research.tools.state import state
 from state import GraphState
 
 
