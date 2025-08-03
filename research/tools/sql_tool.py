@@ -1,31 +1,22 @@
-from langchain.tools import tool
-from langchain_core.prompts import PromptTemplate
-import pandas as pd
-from pandasql import sqldf
-from state import GraphState
-
-pysqldf = lambda q: sqldf(q, globals())
 import io
 import os
+import pandas as pd
+import numpy
+from helpers import LLM
+from langchain.tools import tool
+from langchain_core.prompts import PromptTemplate
+from pandasql import sqldf
+from langchain.chains import LLMChain
+from state import GraphState
 
+
+
+pysqldf = lambda q: sqldf(q, globals())
 
 @tool
-def dataframe_query(state: GraphState):
-    """You are given a a query from user regarding dataframe, your job is to write SQL query that suffices the user's objective
-    note that query so given must run on pandasql
-    use pysql to query the dataframe and return a pandas dataframe
-    ### Instructions
-    *** use name from df_info dictionary to create a dataframe using paths["name"] to access the path for creating a dataframe that shall be queried
-    ### Inputs :
-        - query: The user's query regarding the dataframe.
-    ### Output:
-        - SQL query (Assume name of the dataframe to be df)
-    ### Instructions:
-        1. Don't give any explanation or additional information or preamble in query, just return the  query .
-    ### Example Output:
-    query 1: "give me all the rows where age is less than 30"
-    output 1: "SELECT * FROM df WHERE Age < 30"
-
+def pandasql_tool(state: dict):
+    """
+    use this tool when the user asks for data analysis using SQL (via pandasql)
     """
 
     def capture_df_info(df: pd.DataFrame) -> str:
@@ -41,7 +32,7 @@ def dataframe_query(state: GraphState):
         Reads all CSV files in csv_dir, returns:
         - paths: dict mapping dataframe name to its file path
         - df_infos: dict mapping dataframe name to its .info() string
-        - globals_dict: dict to be used as globals when executing code
+        - globals_dict: dict to be used as globals when executing queries
         Also registers each DataFrame in globals_dict under its name.
         """
         paths = {}
@@ -53,7 +44,6 @@ def dataframe_query(state: GraphState):
                 name = os.path.splitext(fname)[0]
                 path = os.path.join(csv_dir, fname)
 
-                # Read once, store in dicts
                 df = pd.read_csv(path)
                 paths[name] = path
                 df_infos[name] = capture_df_info(df)
@@ -61,20 +51,64 @@ def dataframe_query(state: GraphState):
 
         return paths, df_infos, globals_dict
 
-    # Ensure that the prompt is correctly formatted
-    prompt = PromptTemplate(
-        input_variables=[ state["inputs"]],
-        template=f"""You are given  a {state["inputs"]} from user regarding dataframe, your job is to write SQL query that suffices the user's objective 
-        note that only query must be returned and nothing else
-        """,
-    )
-    # prompt = prompt.format(dataframe=dataframe, query=query)
+    def generate_sql_code(df_infos: dict, question: str) -> str:
+        """
+        Given a mapping of dataframe names to their info-strings and a user question,
+        returns only the SQL query (no narrative, no comments).
+        """
+        prompt_template = """
+You are an expert in SQL-based data analysis. The user has these tables (with schema & info shown)
+and wants to answer a specific question using SQL. Use pandasql / SQLite dialect.
 
-    # Ensure that chain is defined and can invoke the LLM
-    chain = prompt | LLM().llm  # This line needs to be valid in your context
-    response = chain.invoke({ "query": state["inputs"]}).content
-    # state["message"].append(["completed SQL Query"])
+### Instructions:
+1) Only reference tables by the names given in the df_infos keys.
+2) Only use columns shown in the DataFrame info—do not invent any.
+3) If you need to JOIN tables, do so explicitly.
+4) Output ONLY a single SQL query that directly answers the question. No explanation, no comments.
+5) Do not wrap the query in backticks or quotes.
 
-    state["answer"] = pysqldf(response)
+### Tables Info:
+{df_infos}
 
+### Question:
+{question}
+"""
+        template = PromptTemplate(
+            input_variables=["df_infos", "question"], template=prompt_template
+        )
+        chain = LLMChain(llm=LLM().llm, prompt=template)
+        response = chain.run({"df_infos": df_infos, "question": question})
+        return response.strip()
+
+    # 1) Load CSV files
+    csv_dir = "/content"  # adjust if needed
+    paths, df_infos, global_vars = load_dataframes(csv_dir)
+
+    # 2) Optionally, show schemas for sanity check
+    for name, info in df_infos.items():
+        print(f"--- Schema for {name} ---")
+        print(info, "\n")
+
+    # 3) Get the analysis question from the user
+    question = state["inputs"].strip()
+    if not question:
+        print("No question entered. Exiting.")
+        return state
+
+    # 4) Ask the LLM to generate a pandasql query
+    sql_query = generate_sql_code(df_infos, question)
+    print("\n===== Generated SQL Query =====\n")
+    print(sql_query, "\n")
+
+    # 5) Execute the SQL via pandasql
+    print("===== Executing SQL Query =====")
+    pysqldf = lambda q: sqldf(q, global_vars)
+    try:
+        result_df = pysqldf(sql_query)
+        print(result_df)
+    except Exception as e:
+        print(f"Error executing query: {e}")
+
+    # 6) Update state if needed
+    # state["message"].append(["completed pandasql analysis"])
     return state
