@@ -10,8 +10,8 @@ from langchain.chains import LLMChain
 from state import GraphState
 
 
-
 pysqldf = lambda q: sqldf(q, globals())
+
 
 @tool
 def pandasql_tool(state: GraphState):
