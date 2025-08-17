@@ -7,7 +7,7 @@ from langchain.tools import tool
 from langchain_core.prompts import PromptTemplate
 from pandasql import sqldf
 from langchain.chains import LLMChain
-from state import GraphState
+from tools.state import GraphState
 
 
 pysqldf = lambda q: sqldf(q, globals())

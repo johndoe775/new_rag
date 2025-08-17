@@ -9,7 +9,7 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
-from state import GraphState
+from tools.state import GraphState
 
 load_dotenv()
 groq = os.environ.get("groq")
