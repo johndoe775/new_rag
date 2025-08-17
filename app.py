@@ -60,16 +60,16 @@ rag_tool_node = ToolNode([rag_tool.rag_tool])
 
 def router(state: GraphState) -> str:
     """
-    This is a placeholder router function.
-    Implement your logic here to decide the next node (e.g., "pandas_tool", "sql_tool", or END).
+    Routes the input to the appropriate tool based on keywords.
+    Must return a dict with a key matching the conditional edge.
     """
-    # Example routing logic (replace with your actual logic)
-    if "pandas" in state["choice"].choice.lower():
-        return "pandas_tool"
-    elif "sql" in state["choice"].choice.lower():
-        return "sql_tool"
+    choice = state["inputs"].lower()
+    if "pandas" in choice:
+        return "pandas"
+    elif "sql" in choice:
+        return "sql"
     else:
-        return "rag_tool"
+        return "rag"
 
 
 # Define the graph state
@@ -112,7 +112,7 @@ graph.add_edge(START, "input")
 
 # Add edges
 graph.add_conditional_edges(
-    "router",  # From the "input" node
+    "input",  # From the "input" node
     router,
     {
         "pandas": "pandas_tool",
