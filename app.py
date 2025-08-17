@@ -76,8 +76,10 @@ def router(state: GraphState) -> str:
     # Example routing logic (replace with your actual logic)
     if "pandas" in state["choice"].choice.lower():
         return "pandas_tool"
-    else:
+    elif "sql" in state["choice"].choice.lower():
         return "sql_tool"
+    else:
+        return "rag_tool"
 
 
 # Define the graph state
