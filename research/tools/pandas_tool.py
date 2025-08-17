@@ -7,8 +7,8 @@ from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 from langchain.tools import tool
-from state import GraphState
-from helpers import LLM
+from .state import GraphState
+from .helpers import LLM
 
 
 def pandas_tool(state: GraphState):

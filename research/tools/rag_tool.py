@@ -1,5 +1,5 @@
 import os
-from helpers import LLM
+from .helpers import LLM
 from langchain.document_loaders import PyPDFLoader, DirectoryLoader
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
@@ -9,7 +9,7 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
-from tools.state import GraphState
+from .state import GraphState
 
 load_dotenv()
 groq = os.environ.get("groq")
@@ -43,6 +43,9 @@ def download_hugging_face_embeddings():
 
 
 def rag_tool(state: GraphState):
+    """
+    use this tool when there is a pdf involved to answer the question
+    """
 
     documents = load_pdf("/workspaces/new_rag/data")
     splits = text_split(documents)

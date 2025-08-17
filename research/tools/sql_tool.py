@@ -2,12 +2,12 @@ import io
 import os
 import pandas as pd
 import numpy
-from research.tools.helpers import LLM
+from .helpers import LLM
 from langchain.tools import tool
 from langchain_core.prompts import PromptTemplate
 from pandasql import sqldf
 from langchain.chains import LLMChain
-from tools.state import GraphState
+from .state import GraphState
 
 
 pysqldf = lambda q: sqldf(q, globals())
