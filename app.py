@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from typing import Literal
 from langchain_core.prompts import PromptTemplate
 from research.helpers import LLM
-from research.tools import pandas_tool, sql_tool
+from research.tools import pandas_tool, sql_tool, rag_tool
 import argparse
 
 
@@ -28,7 +28,7 @@ class GraphState(TypedDict):
 
 
 class Choice(BaseModel):
-    choice: Literal["pandas", "sql"] = Field(
+    choice: Literal["pandas", "sql", "rag"] = Field(
         description="Based on the user input, LLM must return one of the literals."
     )
 
@@ -65,6 +65,7 @@ def inputs_node(state: GraphState) -> str:
 
 pandas_tool_node = ToolNode([pandas_tool.pandas_tool])
 sql_tool_node = ToolNode([sql_tool.pandasql_tool])
+rag_tool_node = ToolNode([rag_tool.rag_tool])
 
 
 def router(state: GraphState) -> str:
@@ -105,6 +106,7 @@ graph.add_node(
     "sql_tool", sql_tool_node
 )  # Assuming sql_tool is a defined tool or Runnable
 
+graph.add_node("rag_tool", rag_tool_node)
 # Define an input node (this might not be necessary if you start directly with a tool/router,
 # but keeping it for structure based on your original code)
 graph.add_node("input", inputs_node)  # A simple node to process initial input
@@ -120,7 +122,11 @@ graph.add_edge(START, "input")
 graph.add_conditional_edges(
     "router",  # From the "input" node
     router,
-    {"pandas": "pandas_tool", "sql": "sql_tool"},
+    {
+        "pandas": "pandas_tool",
+        "sql": "sql_tool",
+        "rag": "rag_tool",
+    },  # Routing logic based on the choice
     # Use the router function to decide the next node
 )
 
@@ -130,6 +136,7 @@ graph.add_edge("input", "router")
 
 graph.add_edge("pandas_tool", END)
 graph.add_edge("sql_tool", END)
+graph.add_edge("rag_tool", END)
 
 
 # Compile the graph

@@ -42,7 +42,7 @@ def download_hugging_face_embeddings():
 # Load environment variables
 
 
-def rag(state: GraphState):
+def rag_tool(state: GraphState):
 
     documents = load_pdf("/workspaces/new_rag/data")
     splits = text_split(documents)
