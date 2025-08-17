@@ -65,5 +65,7 @@ def rag_tool(state: GraphState):
     result = qa_chain({"query": state["inputs"]})
     answer = result["result"]
     source_documents = [doc.page_content for doc in result["source_documents"]]
+    state["answer"] = f"Answer: {answer}\nSource Documents: {source_documents}"
 
-    return {"answer": answer, "source_documents": source_documents}
+    state["message"].append("completed rag retrieval")
+    return state
