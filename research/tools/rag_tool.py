@@ -70,5 +70,5 @@ def rag_tool(state: GraphState):
     source_documents = [doc.page_content for doc in result["source_documents"]]
     state["answer"] = f"Answer: {answer}\nSource Documents: {source_documents}"
 
-    state["message"].append("completed rag retrieval")
+    state["messages"].append("completed rag retrieval")
     return state
