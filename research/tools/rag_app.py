@@ -3,30 +3,21 @@ from fastapi import FastAPI, File, UploadFile, Form
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import UnstructuredFileLoader
 from langchain.vectorstores import FAISS
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
+from langchain_community.document_loaders import PyPDFLoader
+
+ 
+
 
 # Load environment variables
 load_dotenv()
 groq = os.environ.get("groq")
 
-app = FastAPI()
-
-
-@app.post("/upload")
-async def upload_file(file: UploadFile = File(...), question: str = Form(...)):
-    try:
-        # Read the content of the uploaded file
-        file_content = await file.read()
-
-        # Create a file loader and load the uploaded file content
-        loader = UnstructuredFileLoader(file_path=None)
-        doc = loader.load_from_string(file_content.decode("utf-8"))
-
-        if doc:
+            loader = PyPDFLoader(pdf_path)
+            documents = loader.load()
             embedding = HuggingFaceEmbeddings()
             llm = ChatGroq(
                 temperature=0, api_key=groq, model_name="llama-3.1-70b-versatile"
