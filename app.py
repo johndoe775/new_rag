@@ -123,7 +123,6 @@ graph.add_conditional_edges(
 )
 
 # Add edges from the tool nodes to the end (or another node if needed)
-graph.add_edge("input", "router")
 
 
 graph.add_edge("pandas_tool", END)
