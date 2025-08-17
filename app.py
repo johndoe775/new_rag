@@ -53,16 +53,6 @@ def inputs_node(state: GraphState) -> str:
     return state
 
 
-"""
-@tool
-
-
-
-@tool
-
-
-"""
-
 pandas_tool_node = ToolNode([pandas_tool.pandas_tool])
 sql_tool_node = ToolNode([sql_tool.pandasql_tool])
 rag_tool_node = ToolNode([rag_tool.rag_tool])
