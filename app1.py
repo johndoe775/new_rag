@@ -13,9 +13,10 @@ from langchain_core.prompts import PromptTemplate
 from research.helpers import LLM
 from research.tools import pandas_tool, sql_tool, rag_tool
 
+
 # If you already have a GraphState type in research.tools.state and want to reuse it,
 # you can import it instead of using the TypedDict below.
-
+@tool
 
 # -------------------------
 # Structured output schema
@@ -139,6 +140,12 @@ def main():
 
     # Run the graph
     result = app.invoke(initial_state)
+    # Run your graph (you already have this)
+
+    # Export the compiled graph to a PNG file
+    png_bytes = app.get_graph().draw_mermaid_png(output_file_path="graph.png")
+    print("Saved graph to graph.png")
+
     print(result)
 
 
