@@ -12,8 +12,10 @@ from langchain_core.prompts import PromptTemplate
 # Your local modules (unchanged)
 from research.helpers import LLM
 from research.tools import pandas_tool, sql_tool, rag_tool
+
 # If you already have a GraphState type in research.tools.state and want to reuse it,
 # you can import it instead of using the TypedDict below.
+
 
 # -------------------------
 # Structured output schema
@@ -22,6 +24,7 @@ class Choice(BaseModel):
     choice: Literal["pandas", "sql", "rag"] = Field(
         description="Return exactly one: 'pandas', 'sql', or 'rag'."
     )
+
 
 # -------------------------
 # Graph state definition
@@ -32,6 +35,7 @@ class GraphState(TypedDict, total=False):
     inputs: str
     choice: Choice  # set by the inputs_node after calling LLM
 
+
 # -------------------------
 # Graph builder
 # -------------------------
@@ -40,6 +44,7 @@ def create_graph():
 
     # 1) Input node: decide which tool to use by calling the LLM with a structured schema
     def inputs_node(state: GraphState) -> GraphState:
+        state["inputs"] = input("Enter your query: ")
         user_input = state["inputs"]
 
         prompt = PromptTemplate.from_template(
@@ -62,10 +67,7 @@ Return ONLY the literal label."""
         response = chain.invoke({"user_input": user_input})
 
         # Normalize to Choice whether the LLM returns a dict or a Choice instance
-        if isinstance(response, dict):
-            state["choice"] = Choice(**response)
-        else:
-            state["choice"] = response
+        state["choice"] = response.choice
 
         return state
 
@@ -84,12 +86,12 @@ Return ONLY the literal label."""
     graph.add_edge(START, "input")
 
     # Use a lambda for routing directly from the "input" node
+
     graph.add_conditional_edges(
         "input",
-        # inline router: read the label set by inputs_node
-        lambda state: getattr(state.get("choice"), "choice", None)  # -> "pandas" | "sql" | "rag"
-            if getattr(state.get("choice"), "choice", None) in {"pandas", "sql", "rag"}
-            else "rag",  # fallback to rag
+        lambda state: (
+            state["choice"] if state["choice"] in {"pandas", "sql", "rag"} else "rag"
+        ),
         {
             "pandas": "pandas_tool",
             "sql": "sql_tool",
@@ -104,13 +106,17 @@ Return ONLY the literal label."""
 
     return graph.compile()
 
+
 # -------------------------
 # CLI entrypoint
 # -------------------------
 import argparse
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Process user input for data analysis.")
+    parser = argparse.ArgumentParser(
+        description="Process user input for data analysis."
+    )
     parser.add_argument(
         "input_text",
         type=str,
@@ -124,7 +130,9 @@ def main():
     initial_state = {
         "messages": [
             HumanMessage(content=args.input_text),
-            AIMessage(content="Sure, I can help with that. Let me call the appropriate tool."),
+            AIMessage(
+                content="Sure, I can help with that. Let me call the appropriate tool."
+            ),
         ],
         "inputs": args.input_text,
     }
@@ -132,6 +140,7 @@ def main():
     # Run the graph
     result = app.invoke(initial_state)
     print(result)
+
 
 if __name__ == "__main__":
     main()

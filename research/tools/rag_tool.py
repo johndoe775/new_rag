@@ -19,8 +19,8 @@ groq = os.environ.get("groq")
 
 def rag_tool(state: GraphState):
     """
-        use this tool when there is a pdf involved to answer the question
-        """
+    use this tool when there is a pdf involved to answer the question
+    """
 
     def load_pdf(data):
         loader = DirectoryLoader(data, glob="*.pdf", loader_cls=PyPDFLoader)
@@ -29,14 +29,12 @@ def rag_tool(state: GraphState):
 
         return documents
 
-
     # Create text chunks
     def text_split(extracted_data):
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
         text_chunks = text_splitter.split_documents(extracted_data)
 
         return text_chunks
-
 
     # download embedding model
     def download_hugging_face_embeddings():
@@ -45,12 +43,7 @@ def rag_tool(state: GraphState):
         )
         return embeddings
 
-
     # Load environment variables
-
-
-
-    
 
     documents = load_pdf("/workspaces/new_rag/data")
     splits = text_split(documents)

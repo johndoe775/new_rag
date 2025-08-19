@@ -50,8 +50,8 @@ def create_graph():
     rag_tool_node = ToolNode([rag_tool.rag_tool])
 
     def router(state: GraphState) -> dict:
-    # state["choice"].choice is already one of "pandas", "sql", or "rag"
-        return {"next":state["choice"].choice}
+        # state["choice"].choice is already one of "pandas", "sql", or "rag"
+        return {"next": state["choice"].choice}
 
         # Add nodes for the tools and input (assuming pandas_tool and sql_tool are defined elsewhere as Runnables or tools)
         # Make sure pandas_tool and sql_tool are callable objects (like LangChain tools or Runnables)
@@ -76,17 +76,17 @@ def create_graph():
     graph.add_edge("input", "router")
     # Add edges
     graph.add_conditional_edges(
-  "router",
-  router,
-  {
-      "next":{
-    "pandas": "pandas_tool",
-    "sql":    "sql_tool",
-    "rag":    "rag_tool",
-  }}
-)# Routing logic based on the choice
-        # Use the router function to decide the next node
-    
+        "router",
+        router,
+        {
+            "next": {
+                "pandas": "pandas_tool",
+                "sql": "sql_tool",
+                "rag": "rag_tool",
+            }
+        },
+    )  # Routing logic based on the choice
+    # Use the router function to decide the next node
 
     # Add edges from the tool nodes to the end (or another node if needed)
 

@@ -9,7 +9,7 @@ from langchain.chains import LLMChain
 from .state import GraphState
 
 
-#pysqldf = lambda q: sqldf(q, globals())
+# pysqldf = lambda q: sqldf(q, globals())
 
 
 def pandasql_tool(state: GraphState):
@@ -17,7 +17,9 @@ def pandasql_tool(state: GraphState):
     use this tool when the user asks for data analysis using SQL (via pandasql)
     """
     from pandasql import sqldf
+
     pysqldf = lambda q: sqldf(q, globals())
+
     def capture_df_info(df: pd.DataFrame) -> str:
         """
         Capture the output of df.info() into a string.
