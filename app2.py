@@ -55,7 +55,7 @@ Return ONLY the literal label.""",
         response = llm.invoke(prompt)
 
         # Directly store the choice as a string
-        state["choice"] = response  # Assuming response is a string
+        state["choice"] = response.content  # Assuming response is a string
 
         return state
 

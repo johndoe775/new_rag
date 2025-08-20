@@ -13,30 +13,18 @@ from langchain_core.prompts import PromptTemplate
 from research.helpers import LLM
 from research.tools import pandas_tool, sql_tool, rag_tool
 
-"""tools = [pandas_tool.pandas_tool, sql_tool.pandasql_tool, rag_tool.rag_tool] 
-llm=LLM().llm.bind_tools([tools])"""
-# List of tools for easy access
-# If you already have a GraphState type in research.tools.state and want to reuse it,
-# you can import it instead of using the TypedDict below.
-
-
-# -------------------------
-# Structured output schema
-# -------------------------
-class Choice(BaseModel):
-    choice: Literal["pandas", "sql", "rag"] = Field(
-        description="Return exactly one: 'pandas', 'sql', or 'rag'."
-    )
+tools = [pandas_tool.pandas_tool, sql_tool.pandasql_tool, rag_tool.rag_tool]
+llm = LLM().llm  # No binding of tools here
 
 
 # -------------------------
 # Graph state definition
 # -------------------------
 class GraphState(TypedDict, total=False):
-    # Keep messages in case you plan to extend the graph with conversational context.
     messages: Annotated[List[BaseMessage], add_messages]
     inputs: str
-    choice: Choice  # set by the inputs_node after calling LLM
+    choice: str  # Directly store the tool choice as a string
+    tool_choice: str  # Store the tool choice for the ToolNode
 
 
 # -------------------------
@@ -45,13 +33,14 @@ class GraphState(TypedDict, total=False):
 def create_graph():
     graph = StateGraph(GraphState)
 
-    # 1) Input node: decide which tool to use by calling the LLM with a structured schema
+    # 1) Input node: decide which tool to use by calling the LLM
     def inputs_node(state: GraphState) -> GraphState:
         state["inputs"] = input("Enter your query: ")
         user_input = state["inputs"]
+        print(f"User input: {user_input}")  # Debugging output
 
-        prompt = PromptTemplate.from_template(
-            """You are a router that decides which tool to use for a user request.
+        prompt = PromptTemplate(
+            template="""You are a router that decides which tool to use for a user request.
 
 User input:
 {user_input}
@@ -61,60 +50,63 @@ Return one of:
 - "sql" for queries that should be answered with SQL (incl. pandasql)
 - "rag" for retrieval-augmented generation (document/knowledge lookup)
 
-Return ONLY the literal label."""
+Return ONLY the literal label.""",
+            inputs=["user_input"],
         )
+        prompt = prompt.format(user_input=user_input)
+        response = llm.invoke(prompt)
 
-        structured_llm = LLM().llm.with_structured_output(Choice)
-        chain = prompt | structured_llm
-
-        response = chain.invoke({"user_input": user_input})
-
-        # Normalize to Choice whether the LLM returns a dict or a Choice instance
-        state["choice"] = response.choice
+        # Directly store the choice as a string
+        state["choice"] = response.content  # Assuming response is a string
 
         return state
 
-    def decider(
-        state: GraphState,
-    ) -> Command[Literal["rag_tool", "pandas_tool", "sql_tool"]]:
-
+    def decider(state: GraphState):
+        """llm binding with tools"""
+        llm1 = llm.bind_tools(tools)
         value = state["choice"]
-        # this is a replacement for a conditional edge function
-        if value == "sql":
-            goto = "sql_tool"
-        elif value == "pandas":
-            goto = "pandas_tool"
-        else:
-            goto = "rag_tool"
 
-        # note how Command allows you to BOTH update the graph state AND route to the next node
-        return Command(
-            goto=goto,
+        prompt = PromptTemplate(
+            template="""You are a router that decides which tool to use for a user request {value} and redirects the user to the appropriate tool.""",
+            inputs=[state["choice"]],
         )
+        prompt = prompt.format(value=value)
+        response = llm1.invoke(prompt)
+
+        state["messages"].append(AIMessage(content=response.content))
+
+        # Set the tool choice in the state for the ToolNode
+        state["tool_choice"] = value  # Store the tool choice
+
+        print(f"Tool choice: {state['tool_choice']}")  # Debugging output
+
+        return Command(goto="tool_node")
 
     # 2) Tool nodes (wrap your existing tools)
-    pandas_tool_node = ToolNode([pandas_tool.pandas_tool])
-    sql_tool_node = ToolNode([sql_tool.pandasql_tool])
-    rag_tool_node = ToolNode([rag_tool.rag_tool])
+    def tool_node(state: GraphState):
+        tool_choice = state.get("tool_choice")
+        if tool_choice == "pandas":
+            # Call the pandas tool
+            return tools[0].invoke(state)
+        elif tool_choice == "sql":
+            # Call the SQL tool
+            return tools[1].invoke(state)
+        elif tool_choice == "rag":
+            # Call the RAG tool
+            return tools[2].invoke(state)
+        else:
+            raise ValueError("Invalid tool choice")
 
     # 3) Register nodes
     graph.add_node("input", inputs_node)
     graph.add_node("decider", decider)
-    graph.add_node("pandas_tool", pandas_tool_node)
-    graph.add_node("sql_tool", sql_tool_node)
-    graph.add_node("rag_tool", rag_tool_node)
+    graph.add_node("tool_node", tool_node)
 
     # 4) Wire edges
     graph.add_edge(START, "input")
-
-    # Use a lambda for routing directly from the "input" node
-
     graph.add_edge("input", "decider")
-
-    # Exit after each tool
-    graph.add_edge("pandas_tool", END)
-    graph.add_edge("sql_tool", END)
-    graph.add_edge("rag_tool", END)
+    graph.add_edge("decider", "tool_node")
+    graph.add_edge("tool_node", END)
 
     return graph.compile()
 
@@ -151,7 +143,6 @@ def main():
 
     # Run the graph
     result = app.invoke(initial_state)
-    # Run your graph (you already have this)
 
     # Export the compiled graph to a PNG file
     png_bytes = app.get_graph().draw_mermaid_png(output_file_path="graph.png")
