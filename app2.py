@@ -1,89 +1,86 @@
 # app.py
-from typing import List, Annotated, TypedDict
+from typing import List, Annotated, Literal, TypedDict
 from pydantic import BaseModel, Field
-
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import StateGraph, START, END, goto
 from langgraph.graph.message import add_messages
-from langgraph.prebuilt import ToolNode, tools_condition
-
+from langgraph.prebuilt import ToolNode
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from langchain_core.tools import tool
+from langchain_core.prompts import PromptTemplate
 
-# Your local modules
+# Local modules
 from research.helpers import LLM
 from research.tools import pandas_tool, sql_tool, rag_tool
 
 
 # -------------------------
-# Graph state
+# Structured output schema
+# -------------------------
+class Choice(BaseModel):
+    choice: Literal["pandas", "sql", "rag"] = Field(
+        description="Return exactly one: 'pandas', 'sql', or 'rag'."
+    )
+
+
+# -------------------------
+# Graph state definition
 # -------------------------
 class GraphState(TypedDict, total=False):
     messages: Annotated[List[BaseMessage], add_messages]
     inputs: str
+    choice: Choice
 
 
 # -------------------------
-# Wrap existing functions as LangChain Tools
-# (names can be anything, but they must match what the LLM may call)
-# -------------------------
-@tool
-def pandas_exec(query: str) -> str:
-    """Run a pandas task on in-memory data as described by `query`."""
-
-    return str(pandas_tool.pandas_tool(query))
-
-
-@tool
-def sql_exec(query: str) -> str:
-    """Run a SQL/pandasql task described by `query`."""
-    return str(sql_tool.pandasql_tool(query))
-
-
-@tool
-def rag_exec(query: str) -> str:
-    """Run a retrieval-augmented lookup to answer `query`."""
-    return str(rag_tool.rag_tool(query))
-
-
-TOOLS = [pandas_exec, sql_exec, rag_exec]
-
-
-# -------------------------
-# Build the graph
+# Graph builder
 # -------------------------
 def create_graph():
-    builder = StateGraph(GraphState)
+    graph = StateGraph(GraphState)
 
-    # 1) Agent node: call model *bound to tools* so it can emit tool_calls
-    agent_llm = LLM().llm.bind_tools(TOOLS)
+    # Input node: decides which tool to use
+    def inputs_node(state: GraphState):
+        user_input = state["inputs"]
 
-    def agent_node(state: GraphState) -> GraphState:
-        msgs = state.get("messages", [])
-        # Ensure the latest user input is present as a HumanMessage
-        if not msgs or not isinstance(msgs[-1], HumanMessage):
-            msgs = msgs + [HumanMessage(content=state["inputs"])]
+        prompt = PromptTemplate.from_template(
+            """You are a router that decides which tool to use for a user request.
 
-        ai = agent_llm.invoke(msgs)  # may include tool_calls
-        return {"messages": [ai]}
+User input:
+{user_input}
 
-    # 2) Tools node: executes tool_calls found in the last AI message
-    tools_node = ToolNode(TOOLS)
+Return one of:
+- "pandas" for DataFrame wrangling/visualizations
+- "sql" for queries that should be answered with SQL (incl. pandasql)
+- "rag" for retrieval-augmented generation (document/knowledge lookup)
 
-    # 3) Register nodes
-    builder.add_node("agent", agent_node)
-    builder.add_node("tools", tools_node)
+Return ONLY the literal label."""
+        )
 
-    # 4) Wire edges
-    builder.add_edge(START, "agent")
+        structured_llm = LLM().llm.with_structured_output(Choice)
+        chain = prompt | structured_llm
+        response = chain.invoke({"user_input": user_input})
 
-    # If the LLM requested a tool, go to ToolNode; else, END.
-    # path_map keeps the diagram clean and avoids stray auto-edges in some versions.
-    builder.add_conditional_edges("agent", tools_condition, path_map=["tools", END])
+        state["choice"] = response.choice
 
-    # After running a tool, go back to the agent to continue or finish
-    builder.add_edge("tools", "agent")
+        # Route to the correct tool using goto
+        return goto(response.choice, state)
 
-    return builder.compile()
+    # Tool nodes
+    pandas_tool_node = ToolNode([pandas_tool.pandas_tool])
+    sql_tool_node = ToolNode([sql_tool.pandasql_tool])
+    rag_tool_node = ToolNode([rag_tool.rag_tool])
+
+    # Register nodes
+    graph.add_node("input", inputs_node)
+    graph.add_node("pandas", pandas_tool_node)
+    graph.add_node("sql", sql_tool_node)
+    graph.add_node("rag", rag_tool_node)
+
+    # Wire edges
+    graph.add_edge(START, "input")
+    graph.add_edge("pandas", END)
+    graph.add_edge("sql", END)
+    graph.add_edge("rag", END)
+
+    return graph.compile()
 
 
 # -------------------------
@@ -96,32 +93,28 @@ def main():
     parser = argparse.ArgumentParser(
         description="Process user input for data analysis."
     )
-    parser.add_argument(
-        "input_text", type=str, help="User request (e.g., 'summarize sales by region')."
-    )
+    parser.add_argument("input_text", type=str, help="The input text for analysis.")
     args = parser.parse_args()
 
     app = create_graph()
 
-    # Seed initial state. We add the user message up front; the agent node will use it.
     initial_state = {
+        "messages": [
+            HumanMessage(content=args.input_text),
+            AIMessage(
+                content="Sure, I can help with that. Let me call the appropriate tool."
+            ),
+        ],
         "inputs": args.input_text,
-        "messages": [HumanMessage(content=args.input_text)],
     }
 
-    # Run the graph
     result = app.invoke(initial_state)
 
-    # Save the diagram (optional)
+    # Optional: Export graph visualization
     app.get_graph().draw_mermaid_png(output_file_path="graph.png")
     print("Saved graph to graph.png")
 
-    # Print final assistant response, if present
-    final_msgs = result.get("messages", [])
-    if final_msgs:
-        print("\nAssistant:\n", final_msgs[-1].content)
-    else:
-        print("\nNo messages returned.")
+    print(result)
 
 
 if __name__ == "__main__":

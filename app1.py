@@ -1,7 +1,7 @@
 # app.py
 from typing import List, Annotated, Literal, TypedDict
 from pydantic import BaseModel, Field
-
+from langgraph.types import Command
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
@@ -13,10 +13,12 @@ from langchain_core.prompts import PromptTemplate
 from research.helpers import LLM
 from research.tools import pandas_tool, sql_tool, rag_tool
 
-
+"""tools = [pandas_tool.pandas_tool, sql_tool.pandasql_tool, rag_tool.rag_tool] 
+llm=LLM().llm.bind_tools([tools])"""
+# List of tools for easy access
 # If you already have a GraphState type in research.tools.state and want to reuse it,
 # you can import it instead of using the TypedDict below.
-@tool
+
 
 # -------------------------
 # Structured output schema
@@ -72,6 +74,24 @@ Return ONLY the literal label."""
 
         return state
 
+    def decider(
+        state: GraphState,
+    ) -> Command[Literal["rag_tool", "pandas_tool", "sql_tool"]]:
+
+        value = state["choice"]
+        # this is a replacement for a conditional edge function
+        if value == "sql":
+            goto = "sql_tool"
+        elif value == "pandas":
+            goto = "pandas_tool"
+        else:
+            goto = "rag_tool"
+
+        # note how Command allows you to BOTH update the graph state AND route to the next node
+        return Command(
+            goto=goto,
+        )
+
     # 2) Tool nodes (wrap your existing tools)
     pandas_tool_node = ToolNode([pandas_tool.pandas_tool])
     sql_tool_node = ToolNode([sql_tool.pandasql_tool])
@@ -79,6 +99,7 @@ Return ONLY the literal label."""
 
     # 3) Register nodes
     graph.add_node("input", inputs_node)
+    graph.add_node("decider", decider)
     graph.add_node("pandas_tool", pandas_tool_node)
     graph.add_node("sql_tool", sql_tool_node)
     graph.add_node("rag_tool", rag_tool_node)
@@ -88,17 +109,7 @@ Return ONLY the literal label."""
 
     # Use a lambda for routing directly from the "input" node
 
-    graph.add_conditional_edges(
-        "input",
-        lambda state: (
-            state["choice"] if state["choice"] in {"pandas", "sql", "rag"} else "rag"
-        ),
-        {
-            "pandas": "pandas_tool",
-            "sql": "sql_tool",
-            "rag": "rag_tool",
-        },
-    )
+    graph.add_edge("input", "decider")
 
     # Exit after each tool
     graph.add_edge("pandas_tool", END)
