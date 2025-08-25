@@ -87,13 +87,13 @@ Return ONLY the literal label.""",
         tool_choice = state.get("choice")
         if tool_choice == "pandas":
             # Call the pandas tool
-            return tools[0].invoke(state)
+            return tools[0].invoke({"state":state})
         elif tool_choice == "sql":
             # Call the SQL tool
-            return tools[1].invoke(state)
+            return tools[1].invoke({"state":state})
         elif tool_choice == "rag":
             # Call the RAG tool
-            return tools[2].invoke(state)
+            return tools[2].invoke({"state":state})
         else:
             raise ValueError("Invalid tool choice")
 
