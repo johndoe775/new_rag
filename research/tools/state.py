@@ -27,3 +27,4 @@ class GraphState(TypedDict):
     inputs: str
     choice: str
     answer: str
+    tool_choice: str  # Store the tool choice for the ToolNode

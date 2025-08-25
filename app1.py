@@ -67,8 +67,8 @@ Return ONLY the literal label.""",
         value = state["choice"]
 
         prompt = PromptTemplate(
-            template="""You are a router that decides which tool to use for a user request {value} and redirects the user to the appropriate tool.""",
-            inputs=[state["choice"]],
+            template="""You are a router that decides which tools to use for a user request {value} and redirects the user to the appropriate tool based on the binded tools .You have to return corresponding tool call that will be used in the next step.""",
+            inputs=[value],
         )
         prompt = prompt.format(value=value)
         response = llm1.invoke(prompt)
@@ -76,15 +76,15 @@ Return ONLY the literal label.""",
         state["messages"].append(AIMessage(content=response.content))
 
         # Set the tool choice in the state for the ToolNode
-        state["tool_choice"] = value  # Store the tool choice
+        state["tool_choice"] = response.content  # Store the tool choice
 
         print(f"Tool choice: {state['tool_choice']}")  # Debugging output
-
+        print(f"state: {state}")
         return Command(goto="tool_node")
 
     # 2) Tool nodes (wrap your existing tools)
     def tool_node(state: GraphState):
-        tool_choice = state.get("tool_choice")
+        tool_choice = state.get("choice")
         if tool_choice == "pandas":
             # Call the pandas tool
             return tools[0].invoke(state)
