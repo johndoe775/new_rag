@@ -1,19 +1,15 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from pydantic import BaseModel
-
+from research.tools.helpers import LLM
 from research.tools.pandas_tool import pandas_tool
 from research.tools.rag_tool import rag_tool
 from research.tools.sql_tool import pandasql_tool
 from research.tools.state import GraphState
-from research.tools.helpers import LLM
 
 app = FastAPI()
 
 class ToolRequest(BaseModel):
     state: dict
-
-
-# Dummy LLM-based tool selector (replace with your LLM logic)
 
 def llm_select_tool(user_input: str) -> str:
     """
@@ -27,9 +23,9 @@ def llm_select_tool(user_input: str) -> str:
         f"User request: {user_input}"
     )
     response = llm.invoke(prompt)
-    tool_name = response.content.strip().split()[0]  # get first word, tool name
+    tool_name = response.content.strip().split()[0]
     if tool_name not in ["pandas_tool", "rag_tool", "pandasql_tool"]:
-        tool_name = "rag_tool"  # fallback
+        tool_name = "pandas_tool"
     return tool_name
 
 @app.post("/run_tool")
