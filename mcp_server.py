@@ -10,7 +10,6 @@ from research.tools.helpers import LLM
 app = FastAPI()
 
 class ToolRequest(BaseModel):
-    user_input: str
     state: dict
 
 
@@ -36,7 +35,8 @@ def llm_select_tool(user_input: str) -> str:
 @app.post("/run_tool")
 async def run_tool(request: ToolRequest):
     state = GraphState(**request.state)
-    tool_name = llm_select_tool(request.user_input)
+    user_input = state.get("inputs", "")
+    tool_name = llm_select_tool(user_input)
     if tool_name == "pandas_tool":
         result = pandas_tool(state)
     elif tool_name == "rag_tool":
